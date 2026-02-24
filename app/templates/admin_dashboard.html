@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h1>📊 Admin Dashboard</h1>
+
+<p><b>Total Users:</b> <span id="totalUsers"></span></p>
+<p><b>Today's Attendance:</b> <span id="todayAttendance"></span></p>
+
+<canvas id="subjectChart" width="400" height="200"></canvas>
+
+<script>
+fetch("/admin/dashboard-data", {
+    headers: {
+        "Authorization": "Bearer " + localStorage.getItem("token")
+    }
+})
+.then(res => res.json())
+.then(data => {
+    document.getElementById("totalUsers").innerText = data.total_users;
+    document.getElementById("todayAttendance").innerText = data.today_attendance;
+
+    const subjects = Object.keys(data.subject_wise_attendance);
+    const counts = Object.values(data.subject_wise_attendance);
+
+    new Chart(document.getElementById("subjectChart"), {
+        type: "bar",
+        data: {
+            labels: subjects,
+            datasets: [{
+                label: "Attendance Count",
+                data: counts
+            }]
+        }
+    });
+});
+</script>
+
+</body>
+</html>

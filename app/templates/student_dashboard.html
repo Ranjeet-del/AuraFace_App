@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h1>🎓 Student Dashboard</h1>
+<p><b>Name:</b> <span id="name"></span></p>
+<p><b>Today's Attendance:</b> <span id="today"></span></p>
+<p><b>Overall Attendance:</b> <span id="overall"></span>%</p>
+
+<table border="1" cellpadding="8">
+    <thead>
+        <tr>
+            <th>Subject</th>
+            <th>Attended</th>
+            <th>Total</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+</table>
+
+<canvas id="attendanceChart" width="400" height="200"></canvas>
+
+<script>
+fetch("/student/dashboard-data", {
+    headers: {
+        "Authorization": "Bearer " + localStorage.getItem("token")
+    }
+})
+.then(res => res.json())
+.then(data => {
+    document.getElementById("name").innerText = data.name;
+    document.getElementById("today").innerText = data.today_attendance;
+    document.getElementById("overall").innerText = data.overall_percentage;
+
+    const subjects = [];
+    const percentages = [];
+
+    data.subjects.forEach(s => {
+        subjects.push(s.subject);
+        percentages.push(s.percentage);
+
+        document.getElementById("table-body").innerHTML += `
+            <tr>
+                <td>${s.subject}</td>
+                <td>${s.attended}</td>
+                <td>${s.total}</td>
+                <td>${s.percentage}%</td>
+            </tr>
+        `;
+    });
+
+    new Chart(document.getElementById("attendanceChart"), {
+        type: "pie",
+        data: {
+            labels: subjects,
+            datasets: [{
+                data: percentages
+            }]
+        }
+    });
+});
+</script>
+
+</body>
+</html>

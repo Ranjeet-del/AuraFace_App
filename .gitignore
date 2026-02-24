@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env
+attendance.db
+images/
+models/
+venv/
+.venv/
+venv39/
+venv*/
+.idea/
+.vscode/
+serviceAccountKey.json

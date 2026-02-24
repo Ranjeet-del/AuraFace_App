@@ -1,0 +1,3 @@
+Dep: CSE Y: 3 Sec: I
+Sched Subs: ['English', 'Aptitude']
+Valid Subs Subject Table: ['CS102', 'CS104', 'CS105', 'CS106', 'CS107', 'CS108', 'CSE23000021']

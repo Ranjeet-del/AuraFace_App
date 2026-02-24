@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h1>👩‍🏫 Teacher Dashboard</h1>
+<p><b>Teacher:</b> <span id="teacher"></span></p>
+<p><b>Today's Attendance:</b> <span id="today"></span></p>
+
+<canvas id="teacherChart" width="400" height="200"></canvas>
+
+<script>
+fetch("/teacher/dashboard-data", {
+    headers: {
+        "Authorization": "Bearer " + localStorage.getItem("token")
+    }
+})
+.then(res => res.json())
+.then(data => {
+    document.getElementById("teacher").innerText = data.teacher;
+    document.getElementById("today").innerText = data.today_attendance;
+
+    const subjects = Object.keys(data.subjects);
+    const percentages = subjects.map(
+        s => data.subjects[s].percentage
+    );
+
+    new Chart(document.getElementById("teacherChart"), {
+        type: "bar",
+        data: {
+            labels: subjects,
+            datasets: [{
+                label: "Attendance %",
+                data: percentages
+            }]
+        }
+    });
+});
+</script>
+
+</body>
+</html>
