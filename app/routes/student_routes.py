@@ -60,6 +60,23 @@ def get_profile(
     
     return student_out
 
+class BloodGroupUpdate(BaseModel):
+    blood_group: str
+
+@router.put("/profile/blood-group")
+def update_blood_group(
+    req: BloodGroupUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    student = db.query(Student).filter(Student.user_id == user["id"]).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    student.blood_group = req.blood_group
+    db.commit()
+    return {"message": "Blood group updated successfully", "blood_group": student.blood_group}
+
 @router.post("/leave")
 def submit_leave(
     req: LeaveRequestCreate,
@@ -420,3 +437,53 @@ def respond_to_proctor_meeting(
     meeting.student_response = resp.response
     db.commit()
     return {"message": "Response recorded"}
+
+@router.get("/teachers/availability")
+def get_teacher_availability(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    from app.models import ClassSession
+    from sqlalchemy import or_
+    
+    # Get all teachers
+    teachers = db.query(User).filter(User.role == "teacher", User.is_active == True).all()
+    
+    # Get active class sessions right now
+    now_time = datetime.now()
+    active_sessions = db.query(ClassSession).filter(
+        ClassSession.status == "ACTIVE",
+        ClassSession.date == now_time.date(),
+        ClassSession.start_time <= now_time,
+        or_(ClassSession.end_time == None, ClassSession.end_time >= now_time)
+    ).all()
+    
+    busy_teacher_ids = [s.teacher_id for s in active_sessions]
+    
+    results = []
+    for t in teachers:
+        status = "In Class" if t.id in busy_teacher_ids else "Available"
+        # Optional: You could check Proctor meetings or Leaves for "Busy"
+        results.append({
+            "id": str(t.id),
+            "name": t.full_name or t.username,
+            "department": t.hod_department or "Faculty",
+            "status": status
+        })
+    return results
+
+@router.get("/calendar")
+def get_academic_calendar(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    from app.models import CalendarEvent
+    events = db.query(CalendarEvent).order_by(CalendarEvent.created_at.desc()).all()
+    results = []
+    for e in events:
+        results.append({
+            "title": e.title,
+            "date": e.date_str,
+            "type": e.event_type
+        })
+    return results

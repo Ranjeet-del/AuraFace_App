@@ -161,7 +161,8 @@ def get_profile(
                 "student_id": student.id,
                 "guardian_name": student.guardian_name,
                 "guardian_email": student.guardian_email,
-                "guardian_mobile": student.guardian_mobile
+                "guardian_mobile": student.guardian_mobile,
+                "blood_group": student.blood_group
             })
 
     # Image Fallback Logic (if not in DB)

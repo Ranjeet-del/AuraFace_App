@@ -1,1 +1,0 @@
-[('CS102', 'English (tnp)'), ('CS104', 'IML'), ('CS105', 'ESE'), ('CS106', 'OE'), ('CS107', 'MPMC'), ('CS108', 'Adv. Python'), ('CSE23000021', 'iot')]

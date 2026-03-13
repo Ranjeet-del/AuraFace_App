@@ -89,6 +89,7 @@ class Student(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     name = Column(String, nullable=False)
     roll_no = Column(String, unique=True, index=True)
+    program = Column(String, nullable=True) # e.g., B.Tech, M.Tech, MCA, BCA
     department = Column(String)
     year = Column(Integer)
     semester = Column(Integer, nullable=True)
@@ -112,6 +113,8 @@ class Student(Base):
     guardian_name = Column(String, nullable=True)
     guardian_email = Column(String, nullable=True)
     guardian_mobile = Column(String, nullable=True)
+    
+    blood_group = Column(String, nullable=True)
 
 # --- Academic Models ---
 class Subject(Base):
@@ -378,3 +381,86 @@ class MessageReadStatus(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
     
     message = relationship("ChatMessage", back_populates="reads")
+
+class MoodCheckIn(Base):
+    __tablename__ = "mood_checkins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    date = Column(Date, default=datetime.utcnow().date)
+    mood = Column(String) # HAPPY, FOCUSED, NEUTRAL, TIRED, STRESSED
+    notes = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+
+class CalendarEvent(Base):
+    __tablename__ = "calendar_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    date_str = Column(String, nullable=False) # e.g., "15 Oct - 20 Oct"
+    event_type = Column(String, nullable=False) # "Holiday", "Exam", "Deadline"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# --- Entertainment Models ---
+
+class MovieEvent(Base):
+    __tablename__ = "movie_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    poster_url = Column(String, nullable=True)
+    trailer_url = Column(String, nullable=True)
+    show_time = Column(DateTime, nullable=False)
+    venue = Column(String, nullable=False)
+    duration_mins = Column(Integer, default=120)
+    total_seats = Column(Integer, default=100)
+    available_seats = Column(Integer, default=100)
+    ticket_price = Column(Float, default=0.0) # E.g., XP points or real money
+    status = Column(String, default="UPCOMING") # UPCOMING, NOW_SHOWING, COMPLETED
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class MovieBooking(Base):
+    __tablename__ = "movie_bookings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    movie_id = Column(Integer, ForeignKey("movie_events.id"))
+    student_id = Column(Integer, ForeignKey("students.id"))
+    seats_booked = Column(Integer, default=1)
+    booking_time = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="CONFIRMED") # CONFIRMED, CANCELLED
+    
+    movie = relationship("MovieEvent")
+    student = relationship("Student")
+
+class SportsTournament(Base):
+    __tablename__ = "sports_tournaments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    sport_type = Column(String, nullable=False) # e.g., Cricket, Football, Basketball
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    registration_deadline = Column(Date, nullable=True)
+    status = Column(String, default="UPCOMING") # UPCOMING, ONGOING, COMPLETED
+    banner_url = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class SportsMatch(Base):
+    __tablename__ = "sports_matches"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tournament_id = Column(Integer, ForeignKey("sports_tournaments.id"))
+    team_a = Column(String, nullable=False) # e.g., "CSE 3rd Year"
+    team_b = Column(String, nullable=False)
+    match_time = Column(DateTime, nullable=False)
+    venue = Column(String, nullable=False)
+    status = Column(String, default="SCHEDULED") # SCHEDULED, LIVE, COMPLETED
+    score_team_a = Column(String, nullable=True) # e.g., "120/4" or "2"
+    score_team_b = Column(String, nullable=True)
+    winner = Column(String, nullable=True)
+    is_live = Column(Boolean, default=False)
+    
+    tournament = relationship("SportsTournament")

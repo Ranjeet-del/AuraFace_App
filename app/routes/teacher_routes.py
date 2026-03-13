@@ -95,9 +95,31 @@ def teacher_dashboard_data(
             "lastAttendance": str(last_date) if last_date else None
         })
 
+    # Calculate real pending today
+    today_date = date.today()
+    today_day_name = today_date.strftime("%A")
+    
+    if user["role"] == "admin":
+        schedule_today = db.query(ClassSchedule).filter(ClassSchedule.day_of_week == today_day_name).all()
+    else:
+        schedule_today = db.query(ClassSchedule).filter(
+            ClassSchedule.teacher_id == user["id"],
+            ClassSchedule.day_of_week == today_day_name
+        ).all()
+        
+    unique_subjects_today = set([sch.subject for sch in schedule_today])
+    pending_today = 0
+    for subj_id in unique_subjects_today:
+        has_att = db.query(Attendance).filter(
+            Attendance.subject == subj_id,
+            Attendance.date == today_date
+        ).first() is not None
+        if not has_att:
+            pending_today += 1
+
     return {
         "totalAssignedSubjects": len(assigned_subjects),
-        "pendingAttendanceToday": 2, # Placeholder
+        "pendingAttendanceToday": pending_today,
         "assignedSubjects": assigned_subjects,
         "isHod": bool(db_user.is_hod),
         "hodDepartment": db_user.hod_department,

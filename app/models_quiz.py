@@ -12,6 +12,7 @@ class QuizQuestion(Base):
     subcategory = Column(String, nullable=True) # DSA, Java, etc.
     difficulty = Column(String, default="MEDIUM") # EASY, MEDIUM, HARD
     question_text = Column(String, nullable=False)
+    attachment_url = Column(String, nullable=True)
     options = Column(JSON, nullable=False) # List of strings ["Option A", "Option B", ...]
     correct_option_index = Column(Integer, nullable=False) # 0-3
     explanation = Column(String, nullable=True)
@@ -48,5 +49,40 @@ class QuizAttempt(Base):
     answers_json = Column(JSON) # User's answers map {q_id: selected_index}
     completed_at = Column(DateTime, default=datetime.utcnow)
     time_taken_seconds = Column(Integer, default=0)
+    
+    user = relationship("User")
+
+class RewardItem(Base):
+    __tablename__ = "reward_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    xp_cost = Column(Integer, nullable=False)
+    icon_name = Column(String, default="LocalFireDepartment") # To map to Compose Icons
+    bg_color = Column(String, default="0xFFF1F5F9")
+    stock = Column(Integer, default=-1) # -1 means infinite
+    is_active = Column(Boolean, default=True)
+
+class RedeemedReward(Base):
+    __tablename__ = "redeemed_rewards"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    reward_id = Column(Integer, ForeignKey("reward_items.id"))
+    redeemed_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="PENDING") # PENDING, FULFILLED, REJECTED
+    
+    user = relationship("User")
+    reward = relationship("RewardItem")
+
+class DailyQuestProgress(Base):
+    __tablename__ = "daily_quest_progress"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    date = Column(Date, default=date.today)
+    quest_id = Column(String, index=True) # e.g. "MOOD_LOG", "QUIZ_ATTEMPT"
+    is_claimed = Column(Boolean, default=False)
     
     user = relationship("User")

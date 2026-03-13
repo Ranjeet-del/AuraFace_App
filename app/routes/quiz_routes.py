@@ -6,9 +6,11 @@ from datetime import date, datetime, timedelta
 import random
 
 from app.database import get_db
-from app.models import User
-from app.models_quiz import QuizQuestion, DailyQuiz, QuizAttempt, UserGamification
-from app.schemas_quiz import QuestionResponse, QuizAttemptSubmit, QuizResultResponse, GamificationProfile, LeaderboardEntry
+from app.models import User, ChatMessage
+from app.models_quiz import QuizQuestion, DailyQuiz, QuizAttempt, UserGamification, RewardItem, RedeemedReward
+from app.schemas_quiz import QuestionResponse, QuizAttemptSubmit, QuizResultResponse, GamificationProfile, LeaderboardEntry, RewardItemOut, RedeemRequest, RedeemedRewardOut, DuelWagerCreate, FocusSessionSubmit
+from app.utils.websocket_manager import manager
+import asyncio
 from app.auth_dependencies import get_current_active_user as get_current_user
 from app.firebase_utils import send_topic_notification 
 
@@ -337,11 +339,205 @@ def create_question(
         subcategory=question.subcategory,
         difficulty=question.difficulty,
         question_text=question.question_text,
+        attachment_url=question.attachment_url,
         options=question.options,
         correct_option_index=question.correct_option_index,
         explanation=question.explanation
     )
-    db.add(new_q)
     db.commit()
     db.refresh(new_q)
     return new_q
+
+# --- Utilities ---
+import os
+import shutil
+from fastapi import UploadFile, File
+
+@router.post("/upload")
+async def upload_attachment(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    safe_filename = f"{datetime.now().timestamp()}_{file.filename.replace(' ', '_')}"
+    file_location = f"images/quiz/{safe_filename}"
+    os.makedirs(os.path.dirname(file_location), exist_ok=True)
+    
+    with open(file_location, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"url": f"/{file_location}", "filename": file.filename}
+
+# --- Focus Flow (Pomodoro) ---
+
+@router.post("/focus/submit")
+def submit_focus_session(
+    req: FocusSessionSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if req.duration_minutes <= 0:
+        raise HTTPException(status_code=400, detail="Duration must be positive")
+        
+    # Calculate XP (e.g. 5 XP per minute)
+    xp_earned = req.duration_minutes * 5
+    
+    # Optional logic: Cap daily Focus XP or give streak multipliers.
+    profile = db.query(UserGamification).filter(UserGamification.user_id == current_user.id).first()
+    if not profile:
+        profile = UserGamification(user_id=current_user.id)
+        db.add(profile)
+        
+    profile.total_xp += xp_earned
+    
+    # Check for level up
+    old_level = profile.current_level
+    while profile.total_xp >= (profile.current_level * 1000):
+        profile.current_level += 1
+        
+    db.commit()
+    
+    return {
+        "message": f"Awesome focus! You studied {req.subject_tag} for {req.duration_minutes}m.",
+        "xp_earned": xp_earned,
+        "new_total_xp": profile.total_xp,
+        "level_up": profile.current_level > old_level
+    }
+
+# --- Rewards Store ---
+
+@router.get("/rewards", response_model=List[RewardItemOut])
+def get_rewards(db: Session = Depends(get_db)):
+    # Optional: seed some rewards if table is empty
+    if db.query(RewardItem).count() == 0:
+        default_rewards = [
+            RewardItem(title="Premium Resume Template", description="Unlock a professionally designed IT resume.", xp_cost=500, icon_name="Description", bg_color="0xFFE2E8F0"),
+            RewardItem(title="1-on-1 Mock Interview", description="Virtual mock interview with Ask Aura AI.", xp_cost=2000, icon_name="Mic", bg_color="0xFFFEF3C7"),
+            RewardItem(title="Priority Placement Drive", description="Get top-list priority for the next campus drive.", xp_cost=5000, icon_name="Work", bg_color="0xFFD1FAE5"),
+            RewardItem(title="Campus Cafe Voucher", description="Rs. 50 OFF at the Campus Canteen", xp_cost=1500, icon_name="Coffee", bg_color="0xFFFFEDD5")
+        ]
+        db.add_all(default_rewards)
+        db.commit()
+        
+    return db.query(RewardItem).filter(RewardItem.is_active == True).all()
+
+@router.post("/rewards/redeem", response_model=RedeemedRewardOut)
+def redeem_reward(
+    req: RedeemRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    reward = db.query(RewardItem).filter(RewardItem.id == req.reward_id, RewardItem.is_active == True).first()
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+        
+    if reward.stock == 0:
+        raise HTTPException(status_code=400, detail="Reward out of stock")
+        
+    profile = db.query(UserGamification).filter(UserGamification.user_id == current_user.id).first()
+    if not profile or profile.total_xp < reward.xp_cost:
+        raise HTTPException(status_code=400, detail="Not enough XP to redeem this reward")
+        
+    # Deduct XP
+    profile.total_xp -= reward.xp_cost
+    
+    if reward.stock > 0:
+        reward.stock -= 1
+        
+    redeemed = RedeemedReward(
+        user_id=current_user.id,
+        reward_id=reward.id,
+        status="PENDING"
+    )
+    
+    db.add(redeemed)
+    db.commit()
+    db.refresh(redeemed)
+    return redeemed
+
+@router.get("/rewards/my", response_model=List[RedeemedRewardOut])
+def get_my_rewards(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return db.query(RedeemedReward).filter(RedeemedReward.user_id == current_user.id).order_by(desc(RedeemedReward.redeemed_at)).all()
+
+# --- Quiz Duels (Chat Integaration) ---
+
+@router.post("/duel/invite")
+async def send_duel_invite(
+    req: DuelWagerCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Verify Sender XP
+    sender_profile = db.query(UserGamification).filter(UserGamification.user_id == current_user.id).first()
+    if not sender_profile or sender_profile.total_xp < req.wager_amount:
+         raise HTTPException(status_code=400, detail="You do not have enough XP to wager this amount.")
+         
+    target = db.query(User).filter(User.id == req.target_user_id).first()
+    if not target:
+         raise HTTPException(status_code=404, detail="Target user not found")
+         
+    # Form Direct Message Group ID
+    u1, u2 = sorted([current_user.id, target.id])
+    group_id = f"DM_{u1}_{u2}"
+    
+    # Extract 5 Random Questions from the DB for the Duel
+    q_query = db.query(QuizQuestion.id)
+    if req.category != "MIXED":
+        q_query = q_query.filter(QuizQuestion.category == req.category)
+    q_ids_tuples = q_query.order_by(func.random()).limit(5).all()
+    q_ids = [q[0] for q in q_ids_tuples]
+    
+    if len(q_ids) < 5:
+        raise HTTPException(status_code=400, detail="Not enough questions in this category to start a duel.")
+        
+    duel_state = {
+         "type": "DUEL_INVITE",
+         "wager": req.wager_amount,
+         "category": req.category,
+         "questions": q_ids,
+         "challenger_id": current_user.id,
+         "challenger_score": None,
+         "target_id": target.id,
+         "target_score": None,
+         "status": "PENDING"
+    }
+    
+    import json
+    msg_content = json.dumps(duel_state)
+    
+    # Save the Duel as a special Chat Message
+    duel_msg = ChatMessage(
+         sender_id=current_user.id,
+         group_id=group_id,
+         content=msg_content,
+         msg_type="DUEL",
+         timestamp=datetime.utcnow()
+    )
+    
+    db.add(duel_msg)
+    
+    # Deduct XP temporarily (Escrow)
+    sender_profile.total_xp -= req.wager_amount
+    
+    db.commit()
+    db.refresh(duel_msg)
+    
+    # Broadcast to websocket
+    msg_data = {
+         "id": duel_msg.id,
+         "sender_id": current_user.id,
+         "sender_name": current_user.full_name or current_user.username,
+         "sender_profile_image": current_user.profile_image,
+         "group_id": group_id,
+         "content": msg_content,
+         "msg_type": "DUEL",
+         "timestamp": duel_msg.timestamp.isoformat(),
+         "status": "DELIVERED"
+    }
+    
+    await manager.broadcast_to_group(msg_data, group_id)
+    
+    return {"message": "Duel invite sent!", "duel_id": duel_msg.id}
+

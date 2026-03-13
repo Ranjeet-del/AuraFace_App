@@ -29,25 +29,25 @@ def error_response(code: str, message: str):
 class ScheduleCreate(BaseModel):
     department: str
     year: int
-    semester: Optional[int] = None
+    semester: Optional[Any] = None # Relaxed
     section: str
     day_of_week: str
     time_slot: str
     subject: str
-    teacher_id: Optional[int] = None
+    teacher_id: Optional[Any] = None # Relaxed
     period: Optional[str] = "1" 
     room: Optional[str] = None 
-    date: Optional[date] = None
+    date: Optional[str] = None # Relaxed to str
 
 class ScheduleUpdate(BaseModel):
     day_of_week: Optional[str] = None
     time_slot: Optional[str] = None
     subject: Optional[str] = None
-    teacher_id: Optional[int] = None
+    teacher_id: Optional[Any] = None # Relaxed to Any
     period: Optional[str] = None
     room: Optional[str] = None
-    semester: Optional[int] = None
-    date: Optional[date] = None
+    semester: Optional[Any] = None # Relaxed to Any
+    date: Optional[str] = None
     status: Optional[str] = None # PENDING, APPROVED, REJECTED
 
 @router.post("/add")
@@ -72,16 +72,23 @@ def add_schedule_slot(
     new_schedule = ClassSchedule(
         department=req.department.strip(),
         year=req.year,
-        semester=req.semester,
+        semester=int(req.semester) if (req.semester and str(req.semester).isdigit()) else None,
         section=req.section.strip(),
         day_of_week=req.day_of_week.strip(),
         time_slot=req.time_slot.strip(),
         subject=req.subject.strip(),
-        teacher_id=req.teacher_id if (req.teacher_id and req.teacher_id > 0) else None,
+        teacher_id=int(req.teacher_id) if (req.teacher_id and str(req.teacher_id).isdigit() and int(req.teacher_id) > 0) else None,
         period=req.period.strip() if req.period else "1",
         room=req.room.strip() if req.room else None,
-        date=req.date
+        date=None
     )
+    if req.date:
+        if req.date.strip().lower() != "null" and req.date.strip() != "":
+            from datetime import datetime
+            try:
+                new_schedule.date = datetime.strptime(req.date.strip(), "%Y-%m-%d").date()
+            except ValueError:
+                pass
     db.add(new_schedule)
     db.commit()
     return success_response({"id": new_schedule.id}, "Schedule slot added successfully")
@@ -114,11 +121,28 @@ def update_schedule_slot(
     if req.day_of_week is not None: slot.day_of_week = req.day_of_week.strip()
     if req.time_slot is not None: slot.time_slot = req.time_slot.strip()
     if req.subject is not None: slot.subject = req.subject.strip()
-    if req.teacher_id is not None: slot.teacher_id = req.teacher_id if req.teacher_id > 0 else None
+    if req.teacher_id is not None:
+        try:
+            tid = int(req.teacher_id)
+            slot.teacher_id = tid if tid > 0 else None
+        except (ValueError, TypeError):
+            slot.teacher_id = None
     if req.period is not None: slot.period = req.period.strip()
     if req.room is not None: slot.room = req.room.strip()
-    if req.semester is not None: slot.semester = req.semester
-    if req.date is not None: slot.date = req.date
+    if req.semester is not None:
+        try:
+            slot.semester = int(req.semester)
+        except (ValueError, TypeError):
+            pass
+    if req.date is not None:
+        if req.date.strip().lower() == "null" or req.date.strip() == "":
+            slot.date = None
+        else:
+            from datetime import datetime
+            try:
+                slot.date = datetime.strptime(req.date.strip(), "%Y-%m-%d").date()
+            except ValueError:
+                pass
     if req.status is not None:
         # Check if status is changing to APPROVED
         if (slot.status != "APPROVED") and (req.status == "APPROVED") and slot.teacher_id:

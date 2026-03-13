@@ -399,25 +399,63 @@ def mark_attendance_manual(req: ManualAttendanceRequest, background_tasks: Backg
 @router.get("/subject/{subject_id}")
 def get_subject_attendance(subject_id: str):
     db = SessionLocal()
+    from app.models import Subject
     try:
-        records = db.query(Attendance, Student).join(Student, Attendance.student_id == Student.id).filter(
+        subject = db.query(Subject).filter(Subject.id == subject_id).first()
+        if not subject:
+            return error_response("SUBJECT_NOT_FOUND", "Subject not found")
+
+        # All assigned students
+        all_students = db.query(Student).filter(
+            Student.department == subject.department,
+            Student.year == subject.year,
+            Student.section == subject.section
+        ).all()
+        student_map = {s.id: s for s in all_students}
+
+        records = db.query(Attendance).filter(
             Attendance.subject == subject_id
-        ).order_by(Attendance.date.desc(), Attendance.marked_at.desc()).all()
+        ).order_by(Attendance.date.desc(), Attendance.period).all()
         
-        data = [
-            {
-                "id": att.id,
-                "student_id": att.student_id,
-                "student_name": stud.name,
-                "roll_no": stud.roll_no,
-                "date": att.date,
-                "period": att.period,
-                "time": str(att.time),
-                "is_late": att.is_late,
-                "late_reason": att.late_reason
-            }
-            for att, stud in records
-        ]
-        return success_response(data)
+        # Group by (date, period)
+        sessions = {}
+        for r in records:
+            if not r.date: continue
+            key = f"{r.date.isoformat()}_{r.period}"
+            if key not in sessions:
+                sessions[key] = {
+                    "date": r.date.isoformat(),
+                    "period": r.period,
+                    "present": []
+                }
+            sessions[key]["present"].append(r.student_id)
+            
+        result_data = []
+        for key, sess in sessions.items():
+            present_ids = set(sess["present"])
+            present_list = []
+            absent_list = []
+            for s_id, s_obj in student_map.items():
+                s_dict = {"name": s_obj.name, "roll_no": s_obj.roll_no}
+                if s_id in present_ids:
+                    present_list.append(s_dict)
+                else:
+                    absent_list.append(s_dict)
+            
+            present_list.sort(key=lambda x: x["name"])
+            absent_list.sort(key=lambda x: x["name"])
+            
+            result_data.append({
+                "date": sess["date"],
+                "period": sess["period"],
+                "present": present_list,
+                "absent": absent_list,
+                "total_present": len(present_list),
+                "total_absent": len(absent_list)
+            })
+            
+        result_data.sort(key=lambda x: (x["date"], x["period"]), reverse=True)
+            
+        return success_response(result_data)
     finally:
         db.close()

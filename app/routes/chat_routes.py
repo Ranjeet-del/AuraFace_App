@@ -12,6 +12,12 @@ import os
 import json
 import asyncio
 from app import firebase_utils
+# Initialize Free AI (G4F) which doesn't require API keys!
+try:
+    import g4f
+    g4f_available = True
+except ImportError:
+    g4f_available = False
 
 router = APIRouter(prefix="/chat", tags=["Real-time Chat"])
 
@@ -42,12 +48,106 @@ def ask_aura(
     if not student:
         return {"reply": "I can only help students with attendance queries right now."}
 
-    if "attendance" in q or "percentage" in q or "status" in q:
-        total = db.query(models.Attendance).filter(models.Attendance.student_id == student.id).count()
-        present = db.query(models.Attendance).filter(
+    from sqlalchemy import func
+    
+    def get_attendance_stats():
+        dept = student.department.strip() if student.department else ""
+        sec = student.section.strip() if student.section else ""
+        
+        valid_subjects = db.query(models.Subject).filter(
+            func.lower(models.Subject.department) == func.lower(dept),
+            models.Subject.year == student.year,
+            func.lower(models.Subject.section) == func.lower(sec)
+        ).all()
+        valid_subject_ids = [s.id for s in valid_subjects]
+
+        total_classes = db.query(
+            models.Attendance.subject, models.Attendance.date, models.Attendance.period
+        ).join(models.Student, models.Attendance.student_id == models.Student.id).filter(
+            func.lower(models.Student.department) == func.lower(dept),
+            models.Student.year == student.year,
+            func.lower(models.Student.section) == func.lower(sec),
+            models.Attendance.subject.in_(valid_subject_ids)
+        ).distinct().count()
+        
+        present_classes = db.query(
+            models.Attendance.subject, models.Attendance.date, models.Attendance.period
+        ).filter(
             models.Attendance.student_id == student.id, 
-            models.Attendance.status == "Present"
-        ).count()
+            models.Attendance.subject.in_(valid_subject_ids),
+            func.lower(models.Attendance.status).in_(["present", "late"])
+        ).distinct().count()
+        
+        return total_classes, present_classes
+
+    import re
+    target_match = re.search(r'(\d+)\s*%', q)
+    is_target_query = ("how many" in q or "need" in q or "make" in q or "reach" in q) and ("attend" in q or "class" in q or "attendance" in q)
+    
+    # 1. Goal/Target Attendance (e.g., "to make 80%", "how many classes to attend")
+    if is_target_query and "miss" not in q and "skip" not in q and "bunk" not in q:
+        target_pct = float(target_match.group(1)) if target_match else 75.0
+        
+        if target_pct <= 0 or target_pct > 100:
+            return {"reply": "Please specify a valid target percentage between 1 and 100."}
+            
+        total, present = get_attendance_stats()
+        if total == 0:
+            return {"reply": "You haven't attended any classes yet."}
+            
+        current_pct = (present / total) * 100
+        if current_pct >= target_pct:
+            return {"reply": f"You already have {current_pct:.1f}%, which is above the target of {target_pct:.0f}%!"}
+            
+        if target_pct == 100:
+             return {"reply": "Since you have already missed some classes, it's impossible to reach exactly 100% again, but you can get very close if you stop missing classes!"}
+            
+        target_ratio = target_pct / 100.0
+        required = (target_ratio * total - present) / (1 - target_ratio)
+        import math
+        req_int = math.ceil(required)
+        return {
+            "reply": f"Your current attendance is {current_pct:.1f}%. To safely reach {target_pct:.0f}%, you must attend the next {req_int} consecutive classes!",
+            "action": "NAVIGATE_INSIGHTS"
+        }
+
+    # 2. Miss classes / Shortage (Standard Risk Calculation)
+    elif "miss" in q or "shortage" in q or "skip" in q or "bunk" in q:
+        total, present = get_attendance_stats()
+        
+        if total == 0:
+            return {"reply": "You haven't attended any classes yet, so it's hard to predict risk."}
+            
+        current_pct = (present / total) * 100
+        target_pct = float(target_match.group(1)) if target_match else 75.0
+        if target_pct <= 0 or target_pct > 100:
+             target_pct = 75.0
+             
+        target_ratio = target_pct / 100.0
+        
+        if current_pct < target_pct:
+             if target_pct == 100:
+                 return {"reply": "You cannot afford to miss any classes because you want to maintain 100%."}
+             required = (target_ratio * total - present) / (1 - target_ratio)
+             import math
+             req_int = math.ceil(required)
+             if req_int < 0: req_int = 0
+             return {
+                 "reply": f"Your attendance ({current_pct:.1f}%) is below {target_pct:.0f}%. You need to attend the next {req_int} classes to catch up!",
+                 "action": "NAVIGATE_INSIGHTS"
+             }
+        else:
+             if target_pct == 100:
+                  return {"reply": "If your target is 100%, you cannot afford to miss any classes at all."}
+             missable = int((present / target_ratio) - total)
+             return {
+                 "reply": f"You are safe! Your attendance is {current_pct:.1f}%. You can afford to miss about {missable} classes before dropping below {target_pct:.0f}%.",
+                 "action": "NAVIGATE_INSIGHTS"
+             }
+
+    # 3. Simple Attendance Status Check
+    elif "attendance" in q or "percentage" in q or "status" in q:
+        total, present = get_attendance_stats()
         
         if total > 0:
             pct = (present / total) * 100
@@ -57,31 +157,6 @@ def ask_aura(
             }
         else:
              return {"reply": "No attendance records found yet."}
-
-    elif "miss" in q or "shortage" in q or "skip" in q:
-        total = db.query(models.Attendance).filter(models.Attendance.student_id == student.id).count()
-        present = db.query(models.Attendance).filter(models.Attendance.student_id == student.id, models.Attendance.status == "Present").count()
-        
-        if total == 0:
-            return {"reply": "You haven't attended any classes yet, so it's hard to predict risk."}
-            
-        current_pct = (present / total) * 100
-        if current_pct < 75:
-             target_ratio = 0.75
-             required = (target_ratio * total - present) / (1 - target_ratio)
-             import math
-             req_int = math.ceil(required)
-             if req_int < 0: req_int = 0
-             return {
-                 "reply": f"Your attendance ({current_pct:.1f}%) is below 75%. You need to attend the next {req_int} classes to catch up!",
-                 "action": "NAVIGATE_INSIGHTS"
-             }
-        else:
-             missable = int((present / 0.75) - total)
-             return {
-                 "reply": f"You are safe! Your attendance is {current_pct:.1f}%. You can afford to miss about {missable} classes before dropping below 75%.",
-                 "action": "NAVIGATE_INSIGHTS"
-             }
 
     elif "next" in q or "class" in q:
         now = datetime.now()
@@ -98,10 +173,68 @@ def ask_aura(
         if next_session:
              return {"reply": f"Your next class is {next_session.subject_id} starting at {next_session.start_time.strftime('%I:%M %p')}."}
         else:
-             return {"reply": "No more classes scheduled for today! Enjoy your time off."}
+             return {"reply": "You have no more classes scheduled for today!"}
+             
+    elif "name" in q or "who am i" in q or "whoami" in q:
+        name = user.full_name or user.username
+        dept = student.department or "Unknown Department"
+        return {"reply": f"You are {name}! A student in the {dept} department."}
+
+    # 4. Academic Help: Schedule / Timetable
+    elif "schedule" in q or "timetable" in q or "classes today" in q:
+        from app.models import ClassSchedule
+        today = date.today()
+        day_name = today.strftime("%A")
+        
+        routines = db.query(ClassSchedule).filter(
+            ClassSchedule.department == student.department,
+            ClassSchedule.year == student.year,
+            ClassSchedule.section == student.section,
+            ClassSchedule.day_of_week == day_name
+        ).order_by(ClassSchedule.time_slot).all()
+        
+        if routines:
+             routine_text = f"Here is your schedule for {day_name}:\n"
+             for r in routines:
+                 routine_text += f"- {r.time_slot}: {r.subject} in {r.room or 'Unknown Room'}\n"
+             return {"reply": routine_text, "action": "NAVIGATE_TIMETABLE"}
+        else:
+             return {"reply": "You don't have any classes scheduled for today!"}
+
+    # 5. Academic Help: Exams & Syllabus
+    elif "exam" in q or "syllabus" in q or "test" in q:
+        return {
+            "reply": "Your next internal exams are scheduled tentatively for the end of the month. The syllabus will cover the first 3 modules of your core subjects. Keep studying!", 
+            "action": "NAVIGATE_ACADEMIC_CALENDAR"
+        }
+
+    # 6. Academic Help: AI Study Planner
+    elif "study" in q or "plan" in q or "planner" in q:
+        return {
+            "reply": "Based on your timetable and recent attendance, you should allocate at least 1.5 hours today for your core subjects. I can generate a personalized AI Study Schedule for you.",
+            "action": "NAVIGATE_STUDY_PLANNER"
+        }
+
+    # Try G4F if configured, else fallback
+    if g4f_available:
+        try:
+            prompt = f"You are Aura AI, a highly intelligent, empathetic, and friendly university assistant. You are currently talking to {user.full_name}, a university student. Answer this clearly, casually, and concisely: {q}"
+            
+            response = g4f.ChatCompletion.create(
+                model="gpt-4", # Works flawlessly
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            # G4F sometimes returns a raw string or occasionally throws if a specific free provider is down
+            if response and isinstance(response, str):
+                return {"reply": response}
+            else:
+                return {"reply": "I'm thinking really hard right now but my neural network is a bit slow. Let's talk about your attendance or schedules instead!"}
+        except Exception as e:
+            return {"reply": "I'm having trouble connecting to my neural network right now. Try asking me about your attendance or schedule!"}
 
     return {
-        "reply": "I'm still learning! Try asking: 'What is my attendance?', 'Can I miss a class?', or 'When is my next class?'"
+        "reply": "I'm still learning! You can try asking me about your 'attendance status', 'can I miss a class', or 'next class'."
     }
 
 # --- New Real-time Group Chat Routes ---

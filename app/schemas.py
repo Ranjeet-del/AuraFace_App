@@ -117,6 +117,7 @@ class CorrectionRequestCreate(BaseModel):
 class StudentBase(BaseModel):
     name: str
     roll_no: str
+    program: Optional[str] = None
     department: str
     guardian_name: Optional[str] = None
     guardian_email: Optional[str] = None
@@ -124,18 +125,21 @@ class StudentBase(BaseModel):
     email: Optional[str] = None
     mobile: Optional[str] = None
     profile_image: Optional[str] = None
+    blood_group: Optional[str] = None
 class StudentCreate(StudentBase):
     pass
 
 class StudentUpdate(BaseModel):
     name: Optional[str] = None
     roll_no: Optional[str] = None
+    program: Optional[str] = None
     department: Optional[str] = None
     year: Optional[int] = None
     section: Optional[str] = None
     guardian_name: Optional[str] = None
     guardian_email: Optional[str] = None
     guardian_mobile: Optional[str] = None
+    blood_group: Optional[str] = None
 
 class StudentOut(StudentBase):
     id: int
@@ -355,3 +359,74 @@ class ChatGroupOut(BaseModel):
     
 class ChatGroupMetadataUpdate(BaseModel):
     name: Optional[str] = None
+
+class CalendarEventCreate(BaseModel):
+    title: str
+    date_str: str
+    event_type: str
+
+class CalendarEventOut(CalendarEventCreate):
+    id: int
+    created_at: datetime
+    class Config: from_attributes = True
+
+# --- Entertainment Schemas ---
+
+class MovieEventCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    poster_url: Optional[str] = None
+    trailer_url: Optional[str] = None
+    show_time: datetime
+    venue: str
+    duration_mins: Optional[int] = 120
+    total_seats: Optional[int] = 100
+    ticket_price: Optional[float] = 0.0
+
+class MovieEventOut(MovieEventCreate):
+    id: int
+    available_seats: Optional[int] = 100
+    status: Optional[str] = "UPCOMING"
+    created_at: Optional[datetime] = None
+    class Config: from_attributes = True
+
+class MovieBookingCreate(BaseModel):
+    movie_id: int
+    seats_booked: Optional[int] = 1
+
+class MovieBookingOut(MovieBookingCreate):
+    id: int
+    student_id: int
+    booking_time: Optional[datetime] = None
+    status: Optional[str] = "CONFIRMED"
+    class Config: from_attributes = True
+
+class SportsTournamentCreate(BaseModel):
+    name: str
+    sport_type: str
+    start_date: date
+    end_date: date
+    registration_deadline: Optional[date] = None
+    banner_url: Optional[str] = None
+
+class SportsTournamentOut(SportsTournamentCreate):
+    id: int
+    status: Optional[str] = "UPCOMING"
+    created_at: Optional[datetime] = None
+    class Config: from_attributes = True
+
+class SportsMatchCreate(BaseModel):
+    tournament_id: int
+    team_a: str
+    team_b: str
+    match_time: datetime
+    venue: str
+
+class SportsMatchOut(SportsMatchCreate):
+    id: int
+    status: Optional[str] = "SCHEDULED"
+    score_team_a: Optional[str] = None
+    score_team_b: Optional[str] = None
+    winner: Optional[str] = None
+    is_live: Optional[bool] = False
+    class Config: from_attributes = True

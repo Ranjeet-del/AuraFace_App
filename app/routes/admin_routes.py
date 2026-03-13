@@ -119,3 +119,36 @@ def get_student_attendance(
     }
 # ---------------- STUDENT MANAGEMENT REMOVED ----------------
 # Logic is now handled in app/routes/admin_students.py to avoid duplication and conflicts.
+
+# ---------------- CALENDAR MANAGEMENT ----------------
+from app.schemas import CalendarEventCreate, CalendarEventOut
+from app.models import CalendarEvent
+
+@router.post("/calendar", response_model=CalendarEventOut)
+def add_calendar_event(
+    event: CalendarEventCreate,
+    db: Session = Depends(get_db),
+    user=Depends(admin_or_teacher)
+):
+    new_event = CalendarEvent(
+        title=event.title,
+        date_str=event.date_str,
+        event_type=event.event_type
+    )
+    db.add(new_event)
+    db.commit()
+    db.refresh(new_event)
+    return new_event
+
+@router.delete("/calendar/{event_id}")
+def delete_calendar_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(admin_or_teacher)
+):
+    ev = db.query(CalendarEvent).filter(CalendarEvent.id == event_id).first()
+    if not ev: 
+        return {"error": "Event not found"}
+    db.delete(ev)
+    db.commit()
+    return {"message": "Event deleted successfully"}

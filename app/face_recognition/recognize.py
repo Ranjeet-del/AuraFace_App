@@ -25,7 +25,7 @@ def load_known_faces():
 
     # Ensure directories exist
     if not os.path.exists(STUDENTS_DIR):
-        print(f"⚠️ Warning: Students directory not found at {STUDENTS_DIR}")
+        print(f"Warning: Students directory not found at {STUDENTS_DIR}")
         return
 
     os.makedirs(ENCODINGS_DIR, exist_ok=True)
@@ -33,7 +33,7 @@ def load_known_faces():
     count = 0
     loaded_ids = []
     
-    print(f"📂 Scanning student images from: {STUDENTS_DIR}")
+    print(f"Scanning student images from: {STUDENTS_DIR}")
     
     # Optimize: Check if we need face_recognition (only import if needed to avoid startup lag if cached)
     # However, for simplicity and ensuring it's available, we might import it inside the loop or check first.
@@ -50,7 +50,7 @@ def load_known_faces():
         if match:
             student_id = int(match.group(1)) 
         else:
-            print(f"⚠️ Skipping {file}: No trailing digits found in filename")
+            print(f"Skipping {file}: No trailing digits found in filename")
             continue
 
         full_img_path = os.path.join(STUDENTS_DIR, file)
@@ -65,15 +65,15 @@ def load_known_faces():
                 try:
                     encoding = np.load(npy_path)
                 except Exception as e:
-                    print(f"⚠️ Corrupt cache for {student_id}, regenerating. Error: {e}")
+                    print(f"Corrupt cache for {student_id}, regenerating. Error: {e}")
         
         # 2. Generate if missing/outdated
         if encoding is None:
             if face_recognition is None:
-                print("⏳ Importing face_recognition module (this may take a moment)...")
+                print("Importing face_recognition module (this may take a moment)...")
                 import face_recognition
 
-            print(f"⚙️  Generating encoding for {file}...")
+            print(f"Generating encoding for {file}...")
             try:
                 image = face_recognition.load_image_file(full_img_path)
                 encodings = face_recognition.face_encodings(image)
@@ -83,9 +83,9 @@ def load_known_faces():
                     # Save to cache
                     np.save(npy_path, encoding)
                 else:
-                    print(f"❌ No face found in {file}. Skipping.")
+                    print(f"No face found in {file}. Skipping.")
             except Exception as e:
-                print(f"❌ Error processing {file}: {e}")
+                print(f"Error processing {file}: {e}")
 
         # 3. Add to memory
         if encoding is not None:
@@ -94,7 +94,7 @@ def load_known_faces():
             loaded_ids.append(student_id)
             count += 1
 
-    print(f"✅ Loaded {count} known faces. IDs: {loaded_ids}")
+    print(f"Loaded {count} known faces. IDs: {loaded_ids}")
 
 def add_or_update_face(student_id, encoding):
     """

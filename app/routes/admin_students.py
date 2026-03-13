@@ -39,6 +39,7 @@ def process_face_encoding(file_path: str, student_id: int):
 def add_student(
     name: str = Form(...),
     roll_no: str = Form(...),
+    program: Optional[str] = Form(None),
     department: str = Form(...),
     year: int = Form(...),
     semester: int = Form(None),
@@ -90,6 +91,7 @@ def add_student(
         user_id=new_user.id,
         name=name,
         roll_no=roll_no,
+        program=program,
         department=department,
         year=year,
         semester=semester,
@@ -226,6 +228,7 @@ def update_student(
     student_id: int,
     name: Optional[str] = Form(None),
     roll_no: Optional[str] = Form(None),
+    program: Optional[str] = Form(None),
     department: Optional[str] = Form(None),
     year: Optional[int] = Form(None),
     section: Optional[str] = Form(None),
@@ -258,6 +261,7 @@ def update_student(
     # Update Student Fields
     if name is not None: student.name = name
     if roll_no is not None: student.roll_no = roll_no
+    if program is not None: student.program = program
     if department is not None: student.department = department
     if year is not None: student.year = year
     if section is not None: student.section = section

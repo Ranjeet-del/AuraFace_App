@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Attendance, Student, ClassSchedule
 from app.auth import admin_only
+from pydantic import BaseModel
 
 from app.models import LeaveRequest
 from sqlalchemy import func
@@ -114,26 +115,94 @@ def defaulter_count(
     db: Session = Depends(get_db),
     user=Depends(admin_only)
 ):
-    # Calculate attendance per student
-    # Note: SQLite bool sum trickery or Case
+    from sqlalchemy import case, func
+    from app.models import Student
+    
+    # Calculate attendance per student directly from their records
     stmt = db.query(
         Attendance.student_id,
         func.count(Attendance.id).label('total'),
         func.sum(case((Attendance.status == 'Present', 1), else_=0)).label('present')
     ).group_by(Attendance.student_id).all()
     
-    defaulters = 0
+    defaulter_ids = []
     safe = 0
     
-    for _, total, present in stmt:
-        if total > 0:
-            pct = present / total
+    # Calculate percentages handling integers properly
+    for student_id, total, present in stmt:
+        if total and total > 0:
+            present_count = present or 0
+            pct = float(present_count) / float(total)
             if pct < 0.75:
-                defaulters += 1
+                defaulter_ids.append((student_id, pct * 100))
             else:
                 safe += 1
                 
-    return {"defaulters": defaulters, "safe": safe}
+    defaulters_list = []
+    if defaulter_ids:
+        s_ids = [did for did, _ in defaulter_ids]
+        students_db = db.query(Student).filter(Student.id.in_(s_ids)).all()
+        student_map = {s.id: s for s in students_db}
+        
+        for did, pct in defaulter_ids:
+            if did in student_map:
+                s = student_map[did]
+                defaulters_list.append({
+                    "id": s.id,
+                    "name": s.name,
+                    "department": s.department,
+                    "year": s.year,
+                    "section": s.section,
+                    "rollNo": s.roll_no,
+                    "percentage": round(pct, 2)
+                })
+
+    return {
+        "defaulters": len(defaulters_list), 
+        "safe": safe,
+        "students": defaulters_list
+    }
+
+class NotifyDefaultersRequest(BaseModel):
+    student_ids: list[int]
+
+@router.post("/defaulters/notify")
+def notify_defaulters(
+    req: NotifyDefaultersRequest,
+    db: Session = Depends(get_db),
+    user=Depends(admin_only)
+):
+    from app.models import Notice, User, Student
+    from datetime import datetime
+    
+    students = db.query(Student).filter(Student.id.in_(req.student_ids)).all()
+    if not students:
+        return {"success": False, "message": "No valid students found"}
+        
+    admin_id = user.get("id", 1)
+    notified_hods = set()
+    
+    for s in students:
+        # 1. Find the HOD for this student's department
+        if s.department:
+            hod = db.query(User).filter(User.is_hod == 1, User.hod_department == s.department).first()
+            if hod and hod.id not in notified_hods:
+                # 2. Create a specific Notice for this HOD
+                msg = f"URGENT: Defaulters identified in your department ({s.department}). Please check the admin logs and issue warnings."
+                notice = Notice(
+                    title="Low Attendance Alert",
+                    message=msg,
+                    sender_id=admin_id,
+                    target_audience="HOD",
+                    department=s.department,
+                    priority="HIGH",
+                    created_at=datetime.utcnow()
+                )
+                db.add(notice)
+                notified_hods.add(hod.id)
+                
+    db.commit()
+    return {"success": True, "message": f"Successfully notified {len(notified_hods)} HOD(s) for the selected students."}
 
 @router.get("/most-absent")
 def most_absent_subject(

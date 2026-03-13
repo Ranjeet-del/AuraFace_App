@@ -24,10 +24,27 @@ from app.routes import (
 
 from app.routes.notification_routes import router as notification_router
 
+from app import models_quiz # Ensure tables are created
+from app import models_campus # Ensure campus tables are created
+
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AuraFace")
+
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f'422 Error: {exc.errors()}', flush=True)
+    try:
+        body = await request.body()
+        print(f'Body: {body}', flush=True)
+    except:
+        pass
+    return JSONResponse(status_code=422, content={'detail': exc.errors()})
 
 # Routers
 app.include_router(auth_router)
@@ -59,10 +76,16 @@ app.include_router(academic_routes.router)
 from app.routes import gallery_routes
 app.include_router(gallery_routes.router)
 
-from app import models_quiz # Ensure tables are created
-from app.routes import placement_routes, quiz_routes
+from app.routes import placement_routes, quiz_routes, pulse_routes, quest_routes, canteen_routes, spaces_routes, lost_found_routes, movie_routes, sports_routes
 app.include_router(placement_routes.router)
 app.include_router(quiz_routes.router)
+app.include_router(pulse_routes.router)
+app.include_router(quest_routes.router)
+app.include_router(canteen_routes.router)
+app.include_router(spaces_routes.router)
+app.include_router(lost_found_routes.router)
+app.include_router(movie_routes.router)
+app.include_router(sports_routes.router)
 
 
 # Static files

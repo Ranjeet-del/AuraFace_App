@@ -7,6 +7,7 @@ class QuestionBase(BaseModel):
     subcategory: Optional[str] = None
     difficulty: str
     question_text: str
+    attachment_url: Optional[str] = None
     options: List[str]
     # explanation removed from base to avoid leaking
 
@@ -22,7 +23,7 @@ class QuestionResponse(QuestionBase):
     id: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class QuizAttemptSubmit(BaseModel):
     answers: Dict[int, int] # {question_id: selected_index}
@@ -58,4 +59,55 @@ class GamificationProfile(BaseModel):
     progress: float # 0.0 to 1.0 for progress bar
     
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class RewardItemOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    xp_cost: int
+    icon_name: str
+    bg_color: str
+    stock: int
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+class RedeemRequest(BaseModel):
+    reward_id: int
+
+class RedeemedRewardOut(BaseModel):
+    id: int
+    reward_id: int
+    redeemed_at: datetime
+    status: str
+    reward: Optional[RewardItemOut] = None
+    
+    class Config:
+        from_attributes = True
+
+class FocusSessionSubmit(BaseModel):
+    duration_minutes: int
+    subject_tag: Optional[str] = "General Study"
+
+class DuelWagerCreate(BaseModel):
+    target_user_id: int
+    wager_amount: int
+    category: str = "MIXED"
+
+class QuestOut(BaseModel):
+    id: str
+    title: str
+    description: str
+    xp_reward: int
+    icon: str
+    bg_color: str
+    is_completed: bool
+    is_claimed: bool
+
+class ClaimQuestResponse(BaseModel):
+    message: str
+    xp_awarded: int
+    new_total_xp: int
+    level_up: bool
