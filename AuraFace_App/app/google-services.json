@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "237103811599",
+    "project_id": "auraface-27ddc",
+    "storage_bucket": "auraface-27ddc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237103811599:android:fc79ae273eae337e15677a",
+        "android_client_info": {
+          "package_name": "com.auraface.auraface_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4xdszuyUgYWkLkd7Z4Zw2iasWUAQuaqE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
