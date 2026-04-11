@@ -158,6 +158,7 @@ def get_profile(
                 "semester": student.semester,
                 "section": student.section,
                 "roll_no": student.roll_no,
+                "program": student.program,
                 "student_id": student.id,
                 "guardian_name": student.guardian_name,
                 "guardian_email": student.guardian_email,

@@ -102,4 +102,4 @@ def request_correction(
     )
     db.add(new_req)
     db.commit()
-    return {"message": "Correction requested"}
+    return {"message": "Correction requested"} 

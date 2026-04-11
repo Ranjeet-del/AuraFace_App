@@ -18,7 +18,9 @@ data class TeacherAnalytics(
     val isHod: Boolean = false,
     val hodDepartment: String? = null,
     val isClassTeacher: Boolean = false,
-    val myClass: ClassDetails? = null
+    val myClass: ClassDetails? = null,
+    val customAvailabilityMessage: String? = null,
+    val isAvailable: Boolean = true
 )
 
 data class ClassDetails(

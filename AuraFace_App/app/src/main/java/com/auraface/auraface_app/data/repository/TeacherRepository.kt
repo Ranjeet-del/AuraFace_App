@@ -49,6 +49,9 @@ class TeacherRepository @Inject constructor(
 
     suspend fun getTeacherDashboardData() = api.getDashboardData()
 
+    suspend fun updateAvailability(message: String) = api.updateAvailability(mapOf("message" to message))
+    suspend fun updateAvailabilityToggle(isAvailable: Boolean) = api.updateAvailabilityToggle(mapOf("is_available" to isAvailable))
+
     suspend fun getSectionLeaves() = api.getSectionLeaves()
     suspend fun sectionAction(leaveId: Int, action: String) = api.sectionAction(
         com.auraface.auraface_app.data.network.model.LeaveActionRequest(leaveId, action)

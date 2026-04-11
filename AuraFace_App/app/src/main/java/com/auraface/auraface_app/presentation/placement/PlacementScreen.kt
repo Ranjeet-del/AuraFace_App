@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,10 +38,19 @@ fun PlacementReadinessScreen(
 
     // Dialog States
     var showSkillDialog by remember { mutableStateOf(false) }
+    var editSkillData by remember { mutableStateOf<com.auraface.auraface_app.data.remote.dto.PlacementSkillDto?>(null) }
+    
     var showProjectDialog by remember { mutableStateOf(false) }
+    var editProjectData by remember { mutableStateOf<com.auraface.auraface_app.data.remote.dto.PlacementProjectDto?>(null) }
+    
     var showCertDialog by remember { mutableStateOf(false) }
+    var editCertData by remember { mutableStateOf<com.auraface.auraface_app.data.remote.dto.PlacementCertificationDto?>(null) }
+    
     var showInternDialog by remember { mutableStateOf(false) }
+    var editInternData by remember { mutableStateOf<com.auraface.auraface_app.data.remote.dto.PlacementInternshipDto?>(null) }
+    
     var showEventDialog by remember { mutableStateOf(false) }
+    var editEventData by remember { mutableStateOf<com.auraface.auraface_app.data.remote.dto.PlacementEventDto?>(null) }
 
     Scaffold(
         topBar = { 
@@ -64,44 +75,94 @@ fun PlacementReadinessScreen(
                         onAddProject = { showProjectDialog = true },
                         onAddCert = { showCertDialog = true },
                         onAddIntern = { showInternDialog = true },
-                        onAddEvent = { showEventDialog = true }
+                        onAddEvent = { showEventDialog = true },
+                        onDeleteSkill = { viewModel.deleteSkill(it) },
+                        onDeleteProject = { viewModel.deleteProject(it) },
+                        onDeleteCert = { viewModel.deleteCertification(it) },
+                        onDeleteIntern = { viewModel.deleteInternship(it) },
+                        onDeleteEvent = { viewModel.deleteEvent(it) },
+                        onEditSkill = { editSkillData = it },
+                        onEditProject = { editProjectData = it },
+                        onEditCert = { editCertData = it },
+                        onEditIntern = { editInternData = it },
+                        onEditEvent = { editEventData = it }
                     )
                 }
             }
         }
         
-        if (showSkillDialog) {
-            AddSkillDialog(onDismiss = { showSkillDialog = false }) { name, level, file ->
-                viewModel.addSkill(name, level, file)
+        if (showSkillDialog || editSkillData != null) {
+            AddSkillDialog(
+                existing = editSkillData,
+                onDismiss = { showSkillDialog = false; editSkillData = null }
+            ) { name, level, file ->
+                if (editSkillData != null) {
+                    viewModel.editSkill(editSkillData!!.id, name, level, file)
+                } else {
+                    viewModel.addSkill(name, level, file)
+                }
                 showSkillDialog = false
+                editSkillData = null
             }
         }
         
-        if (showProjectDialog) {
-            AddProjectDialog(onDismiss = { showProjectDialog = false }) { title, desc, stack, file ->
-                viewModel.addProject(title, desc, stack, file)
+        if (showProjectDialog || editProjectData != null) {
+            AddProjectDialog(
+                existing = editProjectData,
+                onDismiss = { showProjectDialog = false; editProjectData = null }
+            ) { title, desc, stack, status, file ->
+                if (editProjectData != null) {
+                    viewModel.editProject(editProjectData!!.id, title, desc, stack, status, file)
+                } else {
+                    viewModel.addProject(title, desc, stack, status, file)
+                }
                 showProjectDialog = false
+                editProjectData = null
             }
         }
 
-        if (showCertDialog) {
-            AddCertDialog(onDismiss = { showCertDialog = false }) { name, issuer, file ->
-                viewModel.addCertification(name, issuer, file)
+        if (showCertDialog || editCertData != null) {
+            AddCertDialog(
+                existing = editCertData,
+                onDismiss = { showCertDialog = false; editCertData = null }
+            ) { name, issuer, file ->
+                if (editCertData != null) {
+                    viewModel.editCertification(editCertData!!.id, name, issuer, file)
+                } else {
+                    viewModel.addCertification(name, issuer, file)
+                }
                 showCertDialog = false
+                editCertData = null
             }
         }
         
-        if (showInternDialog) {
-             AddInternDialog(onDismiss = { showInternDialog = false }) { company, role, date, file ->
-                 viewModel.addInternship(company, role, date, file)
-                 showInternDialog = false
+        if (showInternDialog || editInternData != null) {
+             AddInternDialog(
+                existing = editInternData,
+                onDismiss = { showInternDialog = false; editInternData = null }
+            ) { company, role, startDate, endDate, file ->
+                if (editInternData != null) {
+                    viewModel.editInternship(editInternData!!.id, company, role, startDate, endDate, file)
+                } else {
+                    viewModel.addInternship(company, role, startDate, endDate, file)
+                }
+                showInternDialog = false
+                editInternData = null
              }
         }
         
-        if (showEventDialog) {
-            AddEventDialog(onDismiss = { showEventDialog = false }) { name, type, date, file ->
-                viewModel.addEvent(name, type, date, file)
+        if (showEventDialog || editEventData != null) {
+            AddEventDialog(
+                existing = editEventData,
+                onDismiss = { showEventDialog = false; editEventData = null }
+            ) { name, type, date, file ->
+                if (editEventData != null) {
+                    viewModel.editEvent(editEventData!!.id, name, type, date, file)
+                } else {
+                    viewModel.addEvent(name, type, date, file)
+                }
                 showEventDialog = false
+                editEventData = null
             }
         }
     }
@@ -114,7 +175,17 @@ fun ReadinessContent(
     onAddProject: () -> Unit,
     onAddCert: () -> Unit,
     onAddIntern: () -> Unit,
-    onAddEvent: () -> Unit
+    onAddEvent: () -> Unit,
+    onDeleteSkill: (Int) -> Unit,
+    onDeleteProject: (Int) -> Unit,
+    onDeleteCert: (Int) -> Unit,
+    onDeleteIntern: (Int) -> Unit,
+    onDeleteEvent: (Int) -> Unit,
+    onEditSkill: (com.auraface.auraface_app.data.remote.dto.PlacementSkillDto) -> Unit,
+    onEditProject: (com.auraface.auraface_app.data.remote.dto.PlacementProjectDto) -> Unit,
+    onEditCert: (com.auraface.auraface_app.data.remote.dto.PlacementCertificationDto) -> Unit,
+    onEditIntern: (com.auraface.auraface_app.data.remote.dto.PlacementInternshipDto) -> Unit,
+    onEditEvent: (com.auraface.auraface_app.data.remote.dto.PlacementEventDto) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -225,7 +296,9 @@ fun ReadinessContent(
                 title = skill.skill_name,
                 subtitle = "Proficiency: ${skill.proficiency}",
                 iconText = skill.skill_name.take(1).uppercase(),
-                gradient = listOf(Color(0xFFFDC830), Color(0xFFF37335))
+                gradient = listOf(Color(0xFFFDC830), Color(0xFFF37335)),
+                onDelete = { onDeleteSkill(skill.id) },
+                onEdit = { onEditSkill(skill) }
             )
         }
         
@@ -235,10 +308,12 @@ fun ReadinessContent(
         items(data.projects) { proj ->
             PremiumListItem(
                 title = proj.title,
-                subtitle = proj.tech_stack,
+                subtitle = "${proj.tech_stack}",
                 iconText = proj.title.take(1).uppercase(),
                 gradient = listOf(Color(0xFF00B4DB), Color(0xFF0083B0)),
-                trailingText = proj.approval_status
+                trailingText = proj.project_status,
+                onDelete = { onDeleteProject(proj.id) },
+                onEdit = { onEditProject(proj) }
             )
         }
 
@@ -251,7 +326,9 @@ fun ReadinessContent(
                 subtitle = cert.issuing_org,
                 iconText = cert.name.take(1).uppercase(),
                 gradient = listOf(Color(0xFF43CEA2), Color(0xFF185A9D)),
-                trailingText = cert.verification_status
+                trailingText = cert.verification_status,
+                onDelete = { onDeleteCert(cert.id) },
+                onEdit = { onEditCert(cert) }
             )
         }
         
@@ -264,7 +341,9 @@ fun ReadinessContent(
                 subtitle = intern.company_name,
                 iconText = intern.company_name.take(1).uppercase(),
                 gradient = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0)),
-                trailingText = intern.verification_status
+                trailingText = intern.verification_status,
+                onDelete = { onDeleteIntern(intern.id) },
+                onEdit = { onEditIntern(intern) }
             )
         }
 
@@ -276,7 +355,10 @@ fun ReadinessContent(
                 title = event.event_name,
                 subtitle = event.event_type,
                 iconText = event.event_name.take(1).uppercase(),
-                gradient = listOf(Color(0xFFFF416C), Color(0xFFFF4B2B))
+                gradient = listOf(Color(0xFFFF416C), Color(0xFFFF4B2B)),
+                trailingText = event.verification_status,
+                onDelete = { onDeleteEvent(event.id) },
+                onEdit = { onEditEvent(event) }
             )
         }
         
@@ -290,7 +372,9 @@ fun PremiumListItem(
     subtitle: String,
     iconText: String,
     gradient: List<Color>,
-    trailingText: String? = null
+    trailingText: String? = null,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -339,8 +423,8 @@ fun PremiumListItem(
             }
             
             if (trailingText != null) {
-                val isPending = trailingText.contains("Pending", ignoreCase = true)
-                val isApproved = trailingText.contains("Approved", ignoreCase = true) || trailingText.contains("Verified", ignoreCase = true)
+                val isPending = trailingText.contains("Pending", ignoreCase = true) || trailingText.contains("Ongoing", ignoreCase = true)
+                val isApproved = trailingText.contains("Approved", ignoreCase = true) || trailingText.contains("Verified", ignoreCase = true) || trailingText.contains("Completed", ignoreCase = true)
                 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -356,6 +440,28 @@ fun PremiumListItem(
                         color = if (isPending) Color(0xFFEF6C00) 
                                 else if (isApproved) Color(0xFF2E7D32)
                                 else MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            if (onEdit != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (onDelete != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -424,9 +530,9 @@ fun EmptyState(text: String, icon: androidx.compose.ui.graphics.vector.ImageVect
 // --- Dialogs ---
 
 @Composable
-fun AddSkillDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.File?) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var level by remember { mutableStateOf("Beginner") }
+fun AddSkillDialog(existing: com.auraface.auraface_app.data.remote.dto.PlacementSkillDto? = null, onDismiss: () -> Unit, onConfirm: (String, String, java.io.File?) -> Unit) {
+    var name by remember { mutableStateOf(existing?.skill_name ?: "") }
+    var level by remember { mutableStateOf(existing?.proficiency ?: "Beginner") }
     var selectedFile by remember { mutableStateOf<android.net.Uri?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -440,7 +546,7 @@ fun AddSkillDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.Fi
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Skill") },
+        title = { Text(if (existing != null) "Edit Skill" else "Add Skill") },
         text = {
             Column {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Skill Name") })
@@ -458,22 +564,10 @@ fun AddSkillDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.Fi
         confirmButton = {
             TextButton(onClick = { 
                 if(name.isNotBlank()) {
-                    var file: java.io.File? = null
-                    if (selectedFile != null) {
-                        try {
-                            val inputStream = contentResolver.openInputStream(selectedFile!!)
-                            val tempFile = java.io.File.createTempFile("skill_", ".tmp", context.cacheDir)
-                            tempFile.outputStream().use { output ->
-                                inputStream?.copyTo(output)
-                            }
-                            file = tempFile
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
+                    val file = generateTempUploadFile(context, selectedFile)
                     onConfirm(name, level, file)
                 }
-            }) { Text("Add") }
+            }) { Text(if (existing != null) "Update" else "Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -482,10 +576,11 @@ fun AddSkillDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.Fi
 }
 
 @Composable
-fun AddProjectDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, java.io.File?) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var desc by remember { mutableStateOf("") }
-    var stack by remember { mutableStateOf("") }
+fun AddProjectDialog(existing: com.auraface.auraface_app.data.remote.dto.PlacementProjectDto? = null, onDismiss: () -> Unit, onConfirm: (String, String, String, String, java.io.File?) -> Unit) {
+    var title by remember { mutableStateOf(existing?.title ?: "") }
+    var desc by remember { mutableStateOf(existing?.description ?: "") }
+    var stack by remember { mutableStateOf(existing?.tech_stack ?: "") }
+    var status by remember { mutableStateOf(existing?.project_status ?: "ONGOING") }
     var selectedFile by remember { mutableStateOf<android.net.Uri?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -499,7 +594,7 @@ fun AddProjectDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, 
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Project") },
+        title = { Text(if (existing != null) "Edit Project" else "Add Project") },
         text = {
             Column {
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Project Title") })
@@ -507,6 +602,8 @@ fun AddProjectDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, 
                 OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") })
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = stack, onValueChange = { stack = it }, label = { Text("Tech Stack (e.g. Kotlin, Python)") })
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Status (e.g. COMPLETED, ONGOING)") })
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { launcher.launch("*/*") }) {
                     Text(if (selectedFile != null) "File Selected" else "Attach Proof (Optional)")
@@ -519,22 +616,10 @@ fun AddProjectDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, 
         confirmButton = {
             TextButton(onClick = { 
                 if(title.isNotBlank()) {
-                    var file: java.io.File? = null
-                    if (selectedFile != null) {
-                        try {
-                            val inputStream = contentResolver.openInputStream(selectedFile!!)
-                            val tempFile = java.io.File.createTempFile("proj_", ".tmp", context.cacheDir)
-                            tempFile.outputStream().use { output ->
-                                inputStream?.copyTo(output)
-                            }
-                            file = tempFile
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                    onConfirm(title, desc, stack, file)
+                    val file = generateTempUploadFile(context, selectedFile)
+                    onConfirm(title, desc, stack, status, file)
                 }
-            }) { Text("Add") }
+            }) { Text(if (existing != null) "Update" else "Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -543,9 +628,9 @@ fun AddProjectDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, 
 }
 
 @Composable
-fun AddCertDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.File?) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var issuer by remember { mutableStateOf("") }
+fun AddCertDialog(existing: com.auraface.auraface_app.data.remote.dto.PlacementCertificationDto? = null, onDismiss: () -> Unit, onConfirm: (String, String, java.io.File?) -> Unit) {
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var issuer by remember { mutableStateOf(existing?.issuing_org ?: "") }
     var selectedFile by remember { mutableStateOf<android.net.Uri?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -559,7 +644,7 @@ fun AddCertDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.Fil
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Certification") },
+        title = { Text(if (existing != null) "Edit Certification" else "Add Certification") },
         text = {
             Column {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Certificate Name") })
@@ -578,23 +663,10 @@ fun AddCertDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.Fil
         confirmButton = {
             TextButton(onClick = { 
                 if(name.isNotBlank()) {
-                    var file: java.io.File? = null
-                    if (selectedFile != null) {
-                        // Create a temporary file from the URI
-                        try {
-                            val inputStream = contentResolver.openInputStream(selectedFile!!)
-                             val tempFile = java.io.File.createTempFile("cert_", ".tmp", context.cacheDir)
-                             tempFile.outputStream().use { output ->
-                                 inputStream?.copyTo(output)
-                             }
-                             file = tempFile
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
+                    val file = generateTempUploadFile(context, selectedFile)
                     onConfirm(name, issuer, file)
                 }
-            }) { Text("Add") }
+            }) { Text(if (existing != null) "Update" else "Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -603,10 +675,11 @@ fun AddCertDialog(onDismiss: () -> Unit, onConfirm: (String, String, java.io.Fil
 }
 
 @Composable
-fun AddInternDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, java.io.File?) -> Unit) {
-    var company by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("2024-01-01") } // Placeholder, need DatePicker ideally
+fun AddInternDialog(existing: com.auraface.auraface_app.data.remote.dto.PlacementInternshipDto? = null, onDismiss: () -> Unit, onConfirm: (String, String, String, String, java.io.File?) -> Unit) {
+    var company by remember { mutableStateOf(existing?.company_name ?: "") }
+    var role by remember { mutableStateOf(existing?.role ?: "") }
+    var startDate by remember { mutableStateOf(if (existing?.start_date != null) existing.start_date.take(10) else "2024-01-01") } 
+    var endDate by remember { mutableStateOf(if (existing?.end_date != null) existing.end_date.take(10) else "") } 
     var selectedFile by remember { mutableStateOf<android.net.Uri?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -620,14 +693,16 @@ fun AddInternDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, j
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Internship") },
+        title = { Text(if (existing != null) "Edit Internship" else "Add Internship") },
         text = {
             Column {
                 OutlinedTextField(value = company, onValueChange = { company = it }, label = { Text("Company Name") })
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = role, onValueChange = { role = it }, label = { Text("Role") })
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Start Date (YYYY-MM-DD)") }, placeholder = { Text("2024-01-01") })
+                OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Start Date (YYYY-MM-DD)") }, placeholder = { Text("2024-01-01") })
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("End Date (Optional)") }, placeholder = { Text("2024-06-01") })
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { launcher.launch("*/*") }) {
                     Text(if (selectedFile != null) "File Selected" else "Attach Proof (Optional)")
@@ -640,22 +715,10 @@ fun AddInternDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, j
         confirmButton = {
             TextButton(onClick = { 
                 if(company.isNotBlank()) {
-                    var file: java.io.File? = null
-                    if (selectedFile != null) {
-                        try {
-                            val inputStream = contentResolver.openInputStream(selectedFile!!)
-                            val tempFile = java.io.File.createTempFile("intern_", ".tmp", context.cacheDir)
-                            tempFile.outputStream().use { output ->
-                                inputStream?.copyTo(output)
-                            }
-                            file = tempFile
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                    onConfirm(company, role, date, file)
+                    val file = generateTempUploadFile(context, selectedFile)
+                    onConfirm(company, role, startDate, endDate, file)
                 }
-            }) { Text("Add") }
+            }) { Text(if (existing != null) "Update" else "Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -664,10 +727,10 @@ fun AddInternDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, j
 }
 
 @Composable
-fun AddEventDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, java.io.File?) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("Hackathon") }
-    var date by remember { mutableStateOf("2024-01-01") } 
+fun AddEventDialog(existing: com.auraface.auraface_app.data.remote.dto.PlacementEventDto? = null, onDismiss: () -> Unit, onConfirm: (String, String, String, java.io.File?) -> Unit) {
+    var name by remember { mutableStateOf(existing?.event_name ?: "") }
+    var type by remember { mutableStateOf(existing?.event_type ?: "Hackathon") }
+    var date by remember { mutableStateOf(if(existing?.date != null) existing.date.take(10) else "2024-01-01") } 
     var selectedFile by remember { mutableStateOf<android.net.Uri?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -681,7 +744,7 @@ fun AddEventDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, ja
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Event") },
+        title = { Text(if (existing != null) "Edit Event" else "Add Event") },
         text = {
             Column {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Event Name") })
@@ -701,25 +764,32 @@ fun AddEventDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, ja
         confirmButton = {
             TextButton(onClick = { 
                 if(name.isNotBlank()) {
-                    var file: java.io.File? = null
-                    if (selectedFile != null) {
-                        try {
-                            val inputStream = contentResolver.openInputStream(selectedFile!!)
-                            val tempFile = java.io.File.createTempFile("event_", ".tmp", context.cacheDir)
-                            tempFile.outputStream().use { output ->
-                                inputStream?.copyTo(output)
-                            }
-                            file = tempFile
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
+                    val file = generateTempUploadFile(context, selectedFile)
                     onConfirm(name, type, date, file)
                 }
-            }) { Text("Add") }
+            }) { Text(if (existing != null) "Update" else "Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+fun generateTempUploadFile(context: android.content.Context, uri: android.net.Uri?): java.io.File? {
+    if (uri == null) return null
+    return try {
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(uri)
+        val mimeType = contentResolver.getType(uri)
+        val extension = android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+        val suffix = if (extension != null) ".$extension" else ".tmp"
+        val tempFile = java.io.File.createTempFile("upload_", suffix, context.cacheDir)
+        tempFile.outputStream().use { output ->
+            inputStream?.copyTo(output)
+        }
+        tempFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
 }

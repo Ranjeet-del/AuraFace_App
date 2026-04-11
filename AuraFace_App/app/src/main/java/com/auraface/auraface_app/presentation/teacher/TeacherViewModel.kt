@@ -149,6 +149,40 @@ class TeacherViewModel @Inject constructor(
         }
     }
 
+    fun updateAvailability(message: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repo.updateAvailability(message)
+                val oldData = dashboardData
+                if (oldData != null) {
+                    dashboardData = oldData.copy(customAvailabilityMessage = message)
+                } else {
+                    loadDashboardData()
+                }
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to update availability")
+            }
+        }
+    }
+
+    fun updateAvailabilityToggle(isAvailable: Boolean, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repo.updateAvailabilityToggle(isAvailable)
+                val oldData = dashboardData
+                if (oldData != null) {
+                    dashboardData = oldData.copy(isAvailable = isAvailable)
+                } else {
+                    loadDashboardData()
+                }
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to toggle availability")
+            }
+        }
+    }
+
     fun loadSectionLeaves() {
         viewModelScope.launch {
             try { sectionLeaveRequests = repo.getSectionLeaves() } catch(e: Exception) {

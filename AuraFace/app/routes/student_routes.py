@@ -450,19 +450,18 @@ def get_teacher_availability(
     teachers = db.query(User).filter(User.role == "teacher", User.is_active == True).all()
     
     # Get active class sessions right now
-    now_time = datetime.now()
     active_sessions = db.query(ClassSession).filter(
-        ClassSession.status == "ACTIVE",
-        ClassSession.date == now_time.date(),
-        ClassSession.start_time <= now_time,
-        or_(ClassSession.end_time == None, ClassSession.end_time >= now_time)
+        ClassSession.status == "ACTIVE"
     ).all()
     
     busy_teacher_ids = [s.teacher_id for s in active_sessions]
     
     results = []
     for t in teachers:
-        status = "In Class" if t.id in busy_teacher_ids else "Available"
+        if not t.is_available:
+            status = "Unavailable"
+        else:
+            status = "In Class" if t.id in busy_teacher_ids else t.custom_availability_message
         # Optional: You could check Proctor meetings or Leaves for "Busy"
         results.append({
             "id": str(t.id),

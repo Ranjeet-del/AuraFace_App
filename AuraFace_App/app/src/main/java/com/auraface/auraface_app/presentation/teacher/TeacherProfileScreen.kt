@@ -12,8 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +40,8 @@ fun TeacherProfileScreen(
         viewModel.loadProfile()
     }
     val scrollState = rememberScrollState()
+    var showAvailabilityDialog by remember { mutableStateOf(false) }
+    var availabilityMessage by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -131,6 +132,44 @@ fun TeacherProfileScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Availability Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Current Status", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Switch(
+                                checked = viewModel.dashboardData?.isAvailable ?: true,
+                                onCheckedChange = { isChecked ->
+                                    viewModel.updateAvailabilityToggle(isChecked)
+                                }
+                            )
+                        }
+                        
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.5.dp)
+                        
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("My Default Availability", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            IconButton(onClick = { 
+                                availabilityMessage = viewModel.dashboardData?.customAvailabilityMessage ?: "8 AM to 7 PM"
+                                showAvailabilityDialog = true 
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit Availability")
+                            }
+                        }
+                        Text(
+                            text = viewModel.dashboardData?.customAvailabilityMessage ?: "8 AM to 7 PM",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Text(
                     text = "Assigned Subjects", 
                     fontSize = 20.sp, 
@@ -194,6 +233,34 @@ fun TeacherProfileScreen(
                 }
             }
         }
+    }
+
+    if (showAvailabilityDialog) {
+        AlertDialog(
+            onDismissRequest = { showAvailabilityDialog = false },
+            title = { Text("Update Availability") },
+            text = {
+                OutlinedTextField(
+                    value = availabilityMessage,
+                    onValueChange = { availabilityMessage = it },
+                    label = { Text("Availability Message") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showAvailabilityDialog = false
+                    viewModel.updateAvailability(availabilityMessage, onSuccess = {}, onError = {})
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAvailabilityDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

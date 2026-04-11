@@ -44,6 +44,7 @@ data class PlacementProjectDto(
     val description: String,
     val tech_stack: String,
     val approval_status: String,
+    val project_status: String = "ONGOING",
     val rejection_reason: String?
 )
 

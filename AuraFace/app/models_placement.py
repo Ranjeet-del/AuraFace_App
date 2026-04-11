@@ -78,6 +78,7 @@ class PlacementProject(Base):
     tech_stack = Column(String) # Comma separated
     project_url = Column(String, nullable=True)
     github_url = Column(String, nullable=True)
+    project_status = Column(String, default="ONGOING")
     document_url = Column(String, nullable=True)
     
     # Approval Workflow

@@ -30,7 +30,23 @@ from app import models_campus # Ensure campus tables are created
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AuraFace")
+import asyncio
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Load faces
+    load_known_faces()
+    try:
+        yield
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        print(f"Lifespan error: {e}")
+    finally:
+        pass
+
+app = FastAPI(title="AuraFace", lifespan=lifespan)
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -115,10 +131,6 @@ def dashboard(request: Request):
 def ping():
     return {"status": "AuraFace backend running"}
 
-
-@app.on_event("startup")
-def startup_event():
-    load_known_faces()
 
 app.include_router(attendance_router)
 

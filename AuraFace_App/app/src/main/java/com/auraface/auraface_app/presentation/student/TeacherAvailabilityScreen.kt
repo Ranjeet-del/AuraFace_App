@@ -107,9 +107,9 @@ fun TeacherAvailabilityScreen(
 @Composable
 fun TeacherAvailabilityCard(teacher: com.auraface.auraface_app.data.network.api.TeacherAvailabilityDTO, onRequest: () -> Unit) {
     val statusColor = when (teacher.status) {
-        "Available" -> Color(0xFF4CAF50)
         "In Class" -> Color(0xFFFF9800)
-        else -> Color(0xFFF44336)
+        "8 AM to 7 PM" -> Color(0xFF4CAF50)
+        else -> Color(0xFF2196F3) // Use blue for custom availability messages
     }
 
     Card(
@@ -137,7 +137,7 @@ fun TeacherAvailabilityCard(teacher: com.auraface.auraface_app.data.network.api.
                     Text(teacher.status, color = statusColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            if (teacher.status == "Available") {
+            if (teacher.status != "In Class") {
                 Button(onClick = onRequest, shape = RoundedCornerShape(8.dp)) {
                     Text("Meet")
                 }

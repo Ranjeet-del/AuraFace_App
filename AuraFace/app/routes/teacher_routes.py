@@ -124,7 +124,9 @@ def teacher_dashboard_data(
         "isHod": bool(db_user.is_hod),
         "hodDepartment": db_user.hod_department,
         "isClassTeacher": is_class_teacher,
-        "myClass": my_class
+        "myClass": my_class,
+        "customAvailabilityMessage": db_user.custom_availability_message,
+        "isAvailable": bool(db_user.is_available)
     }
 
 @router.get("/timetable")
@@ -416,3 +418,37 @@ def send_section_message(
          )
          
     return {"message": "Message sent", "recipient_count": len(notifs)}
+
+class AvailabilityUpdate(BaseModel):
+    message: str
+
+@router.put("/availability")
+def update_availability(
+    req: AvailabilityUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(teacher_only)
+):
+    db_user = db.query(User).filter(User.id == user["id"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    db_user.custom_availability_message = req.message
+    db.commit()
+    return {"message": "Availability updated successfully", "new_status": req.message}
+
+class AvailabilityToggle(BaseModel):
+    is_available: bool
+
+@router.put("/availability-toggle")
+def toggle_availability(
+    req: AvailabilityToggle,
+    db: Session = Depends(get_db),
+    user=Depends(teacher_only)
+):
+    db_user = db.query(User).filter(User.id == user["id"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    db_user.is_available = req.is_available
+    db.commit()
+    return {"message": "Availability toggled successfully", "is_available": req.is_available}

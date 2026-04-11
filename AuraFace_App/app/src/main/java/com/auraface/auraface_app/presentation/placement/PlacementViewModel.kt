@@ -49,14 +49,14 @@ class PlacementViewModel @Inject constructor(
         }
     }
 
-    fun addProject(title: String, description: String, techStack: String, file: java.io.File? = null) {
+    fun addProject(title: String, description: String, techStack: String, status: String, file: java.io.File? = null) {
         viewModelScope.launch {
             try {
                 var url: String? = null
                 if (file != null) {
                     url = repository.uploadDocument(file)
                 }
-                repository.addProject(title, description, techStack, url)
+                repository.addProject(title, description, techStack, status, url)
                 loadData()
             } catch (e: Exception) {
                 // handle error
@@ -79,14 +79,14 @@ class PlacementViewModel @Inject constructor(
         }
     }
     
-    fun addInternship(company: String, role: String, startDate: String, file: java.io.File? = null) {
+    fun addInternship(company: String, role: String, startDate: String, endDate: String, file: java.io.File? = null) {
         viewModelScope.launch {
             try {
                 var url: String? = null
                 if (file != null) {
                     url = repository.uploadDocument(file)
                 }
-                repository.addInternship(company, role, startDate, url)
+                repository.addInternship(company, role, startDate, endDate, url)
                 loadData()
             } catch (e: Exception) {
                 // handle error
@@ -106,6 +106,106 @@ class PlacementViewModel @Inject constructor(
              } catch (e: Exception) {
                  // handle error
              }
+         }
+    }
+
+    fun deleteSkill(id: Int) {
+        viewModelScope.launch {
+            try {
+                repository.deleteSkill(id)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun deleteCertification(id: Int) {
+        viewModelScope.launch {
+            try {
+                repository.deleteCertification(id)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun deleteInternship(id: Int) {
+        viewModelScope.launch {
+            try {
+                repository.deleteInternship(id)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun deleteProject(id: Int) {
+        viewModelScope.launch {
+            try {
+                repository.deleteProject(id)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun deleteEvent(id: Int) {
+        viewModelScope.launch {
+            try {
+                repository.deleteEvent(id)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun editSkill(id: Int, name: String, level: String, file: java.io.File? = null) {
+        viewModelScope.launch {
+            try {
+                var url: String? = null
+                if (file != null) { url = repository.uploadDocument(file) }
+                repository.editSkill(id, name, level, url)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun editProject(id: Int, title: String, description: String, techStack: String, status: String, file: java.io.File? = null) {
+        viewModelScope.launch {
+            try {
+                var url: String? = null
+                if (file != null) { url = repository.uploadDocument(file) }
+                repository.editProject(id, title, description, techStack, status, url)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun editCertification(id: Int, name: String, issuer: String, file: java.io.File? = null) {
+        viewModelScope.launch {
+            try {
+                var url: String? = null
+                if (file != null) { url = repository.uploadDocument(file) }
+                repository.editCertification(id, name, issuer, url)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun editInternship(id: Int, company: String, role: String, startDate: String, endDate: String, file: java.io.File? = null) {
+        viewModelScope.launch {
+            try {
+                var url: String? = null
+                if (file != null) { url = repository.uploadDocument(file) }
+                repository.editInternship(id, company, role, startDate, endDate, url)
+                loadData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun editEvent(id: Int, name: String, type: String, date: String, file: java.io.File? = null) {
+        viewModelScope.launch {
+             try {
+                 var url: String? = null
+                 if (file != null) { url = repository.uploadDocument(file) }
+                 repository.editEvent(id, name, type, date, url)
+                 loadData()
+             } catch (e: Exception) {}
          }
     }
 }

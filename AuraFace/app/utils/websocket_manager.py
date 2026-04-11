@@ -21,7 +21,7 @@ class ConnectionManager:
             
         if websocket not in self.active_connections[group_id][user_id]:
             self.active_connections[group_id][user_id].append(websocket)
-        print(f"User {user_id} connected to group {group_id}")
+        # print(f"User {user_id} connected to group {group_id}")
 
     def disconnect(self, websocket: WebSocket, group_id: str, user_id: str):
         if group_id in self.active_connections:
@@ -34,7 +34,7 @@ class ConnectionManager:
             
             if not self.active_connections[group_id]:
                 del self.active_connections[group_id]
-        print(f"User {user_id} disconnected from group {group_id}")
+        # print(f"User {user_id} disconnected from group {group_id}")
 
     def remove_socket_from_all(self, websocket: WebSocket, user_id: str):
         groups_to_clean = []
@@ -48,7 +48,7 @@ class ConnectionManager:
         
         for group_id in groups_to_clean:
             del self.active_connections[group_id]
-        print(f"User {user_id} fully disconnected from global websocket")
+        # print(f"User {user_id} fully disconnected from global websocket")
 
     async def broadcast_to_group(self, message: dict, group_id: str):
         """Broadcasts a message to all connected users in the group."""

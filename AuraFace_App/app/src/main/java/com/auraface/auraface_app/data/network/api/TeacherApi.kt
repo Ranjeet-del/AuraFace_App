@@ -53,6 +53,12 @@ interface TeacherApi {
     @GET("teacher/dashboard-data")
     suspend fun getDashboardData(): com.auraface.auraface_app.data.network.model.TeacherAnalytics
 
+    @PUT("teacher/availability")
+    suspend fun updateAvailability(@Body req: Map<String, String>): Map<String, String>
+
+    @PUT("teacher/availability-toggle")
+    suspend fun updateAvailabilityToggle(@Body req: Map<String, Boolean>): Map<String, String>
+
     @GET("teacher/leave/assigned-section-requests")
     suspend fun getSectionLeaves(): List<Map<String, Any>>
 

@@ -46,6 +46,8 @@ class User(Base):
     qualification = Column(String, nullable=True)
     otp = Column(String, nullable=True)
     fcm_token = Column(String, nullable=True)
+    custom_availability_message = Column(String, default="8 AM to 7 PM")
+    is_available = Column(Boolean, default=True)
 
 class Notice(Base):
     __tablename__ = "notices"

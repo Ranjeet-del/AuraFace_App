@@ -27,6 +27,7 @@ class SkillCreate(BaseModel):
     skill_name: str
     proficiency: str
     document_url: Optional[str] = None
+    project_status: str = "ONGOING"
 
 class SkillOut(SkillCreate):
     id: int
@@ -51,8 +52,8 @@ class CertificationOut(CertificationCreate):
 class InternshipCreate(BaseModel):
     company_name: str
     role: str
-    start_date: datetime
-    end_date: Optional[datetime] = None
+    start_date: str = '2024-01-01'
+    end_date: Optional[str] = None
     is_current: bool = False
     description: Optional[str] = None
     certificate_url: Optional[str] = None
@@ -61,6 +62,8 @@ class InternshipCreate(BaseModel):
 class InternshipOut(InternshipCreate):
     id: int
     verification_status: str
+    start_date: datetime
+    end_date: Optional[datetime] = None
     class Config: from_attributes = True
 
 # --- Project ---
@@ -71,6 +74,7 @@ class ProjectCreate(BaseModel):
     project_url: Optional[str] = None
     github_url: Optional[str] = None
     document_url: Optional[str] = None
+    project_status: str = "ONGOING"
 
 class ProjectOut(ProjectCreate):
     id: int
@@ -83,7 +87,7 @@ class ProjectOut(ProjectCreate):
 class EventCreate(BaseModel):
     event_name: str
     event_type: str
-    date: datetime
+    date: str = '2024-01-01'
     achievement: Optional[str] = None
     certificate_url: Optional[str] = None
     document_url: Optional[str] = None
@@ -91,6 +95,7 @@ class EventCreate(BaseModel):
 class EventOut(EventCreate):
     id: int
     verification_status: str
+    date: datetime
     class Config: from_attributes = True
     
 # --- Aggregated View ---

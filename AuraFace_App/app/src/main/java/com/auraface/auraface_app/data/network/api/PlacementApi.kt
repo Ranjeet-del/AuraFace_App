@@ -28,4 +28,34 @@ interface PlacementApi {
     suspend fun uploadDocument(
         @Part file: okhttp3.MultipartBody.Part
     ): ChatUploadResponse // Reusing this DTO since it has url/filename
+
+    @DELETE("placement/skill/{id}")
+    suspend fun deleteSkill(@Path("id") id: Int)
+
+    @DELETE("placement/certification/{id}")
+    suspend fun deleteCertification(@Path("id") id: Int)
+
+    @DELETE("placement/internship/{id}")
+    suspend fun deleteInternship(@Path("id") id: Int)
+
+    @DELETE("placement/project/{id}")
+    suspend fun deleteProject(@Path("id") id: Int)
+
+    @DELETE("placement/event/{id}")
+    suspend fun deleteEvent(@Path("id") id: Int)
+
+    @PUT("placement/skill/{id}")
+    suspend fun editSkill(@Path("id") id: Int, @Body skill: Map<String, String>): PlacementSkillDto
+
+    @PUT("placement/certification/{id}")
+    suspend fun editCertification(@Path("id") id: Int, @Body cert: Map<String, String>): PlacementCertificationDto
+
+    @PUT("placement/internship/{id}")
+    suspend fun editInternship(@Path("id") id: Int, @Body intern: Map<String, Any>): PlacementInternshipDto
+
+    @PUT("placement/project/{id}")
+    suspend fun editProject(@Path("id") id: Int, @Body project: Map<String, String>): PlacementProjectDto
+
+    @PUT("placement/event/{id}")
+    suspend fun editEvent(@Path("id") id: Int, @Body event: Map<String, String>): PlacementEventDto
 }

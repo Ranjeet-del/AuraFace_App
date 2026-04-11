@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #4F46E5;
+  --secondary: #ec4899;
+  --bg-color: #F8FAFC;
+  --text-main: #1E293B;
+  --text-sub: #64748B;
+  --card-bg: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fill the Entire Browser Screen */
+.mobile-app-frame {
+  width: 100%;
+  height: 100vh;
+  background-color: var(--bg-color);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 600px) {
+  .mobile-app-frame {
+    height: 100vh;
+    border-radius: 0; /* Remove border radius for full screen */
+    border: none;
+  }
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 80px; /* Space for bottom nav */
+}
+
+/* Hide Scrollbar */
+.scroll-area::-webkit-scrollbar {
+  display: none;
+}
+.scroll-area {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Login Screen */
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  height: 100%;
+  background: #ffffff;
+}
+
+.login-input {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+}
+
+.primary-btn {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Top App Bar */
+.top-bar {
+  background-color: var(--primary);
+  color: white;
+  padding: 1.5rem 1rem 1rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.top-bar h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Stats Header */
+.stats-header {
+  background: linear-gradient(to bottom, #4F46E5, #6366F1);
+  padding: 2rem 1.5rem;
+  border-radius: 0 0 32px 32px;
+  color: white;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+.progress-bar-container {
+  width: 80%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  margin: 1rem auto 0;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #10B981;
+  transition: width 1s ease-in-out;
+}
+
+/* Section Header */
+.section-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 1.5rem 1rem 0.5rem 1rem;
+}
+
+/* Dashboard List Card */
+.dashboard-card {
+  background: var(--card-bg);
+  margin: 0.5rem 1rem;
+  padding: 1rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.dashboard-card:active {
+  background: #f1f5f9;
+  transform: scale(0.98);
+}
+
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-title {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.card-subtitle {
+  color: var(--text-sub);
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  padding: 0.75rem 0;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+  border-top: 1px solid #f1f5f9;
+  z-index: 20;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #94A3B8;
+  font-size: 0.75rem;
+  gap: 4px;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+/* Grid Cards */
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+}
+
+.grid-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.grid-card .icon-circle {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 0.5rem;
+}
